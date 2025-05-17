@@ -1,0 +1,16 @@
+These are my project notes:
+
++ We use 'emap' in the EmberConfig case class.  This is like an "either map" where you get a Some(val) if it can be
+converted or a None if it can't.  In the latter case, then you can throw an error.
+
++ ConfigReader CAN read from environment variables.  In your App.conf file you want to do something like this:
+    postgres-config {
+        pass = ${?PG_PASSWORD}
+    }
+
++ In core.Jobs is where we define all of our SQL interactions.
+    + The algebra (signatures) is done in a trait.
+    + The implementation is done in the LiveJobs class which takes a transactor and inherits the trait.
+    + The LiveJobs companion object has the given to convert to a Job from a db record and the apply method.
+
+(next, do the domain!)
