@@ -19,4 +19,4 @@ other text,
 active boolean not null default false
 );
 
-alter table jobs add constraint pk_jobs PRIMARY KEY(id)
+alter table jobs add constraint pk_jobs PRIMARY KEY(id);

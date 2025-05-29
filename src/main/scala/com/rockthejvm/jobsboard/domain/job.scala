@@ -31,4 +31,15 @@ object job {
   object JobInfo {
     val empty: JobInfo = JobInfo("", "", "", "", false, "", None, None, None, None, None, None, None, None)
   }
+
+  final case class JobFilter(
+    companies: List[String] = List(),
+    locations: List[String] = List(),
+    contries: List[String] = List(),
+    seniorities: List[String] = List(),
+    tags: List[String] = List(),
+    maxSalary: Option[Int] = None,
+    remote: Boolean = false
+  )
+
 }

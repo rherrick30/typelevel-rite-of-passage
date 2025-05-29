@@ -11,8 +11,9 @@ import cats.effect.testing.scalatest.AsyncIOSpec
 import org.scalatest.freespec.AsyncFreeSpec
 import org.scalatest.matchers.should.Matchers
 import com.rockthejvm.jobsboard.core.*
-import com.rockthejvm.jobsboard.domain.job
-import com.rockthejvm.jobsboard.domain.job.Job
+import com.rockthejvm.jobsboard.domain.{job, pagination}
+import com.rockthejvm.jobsboard.domain.job.*
+import com.rockthejvm.jobsboard.domain.pagination.Pagination
 import com.rockthejvm.jobsboard.fixtures.*
 import com.rockthejvm.jobsboard.http.routes.JobRoutes
 import org.typelevel.log4cats.Logger
@@ -33,15 +34,22 @@ class JobRoutesSpec
   // prep
   ////////////////////////////////////////////////////////////
   val jobs: Jobs[IO] = new Jobs[IO] {
-    override def create(ownerEmail: String, jobInfo: job.JobInfo): IO[UUID] = IO{ NewJobUuid }
+    override def create(ownerEmail: String, jobInfo: JobInfo): IO[UUID] = IO{ NewJobUuid }
 
-    override def all(): IO[List[job.Job]] = IO{ List(AwesomeJob) }
+    override def all(): IO[List[Job]] = IO{ List(AwesomeJob) }
 
-    override def find(id: UUID): IO[Option[job.Job]] = if(id == NewJobUuid) IO{ Option(AwesomeJob) } else IO.pure(None)
+    override def all(filter: JobFilter, pagination: Pagination): IO[List[Job]] =
+      if (filter.remote) IO.pure(List()) else IO.pure(List(AwesomeJob))
 
-    override def update(id: UUID, jobInfo: job.JobInfo): IO[Option[job.Job]] = if(id == AwesomeJobUuid) IO{ Option(UpdatedAwesomeJob) } else IO.pure(None)
+    override def find(id: UUID): IO[Option[Job]] = if(id == NewJobUuid) IO{ Option(AwesomeJob) } else IO.pure(None)
 
-    override def delete(id: UUID): IO[Int] = IO { if (id == AwesomeJobUuid) 1 else 0 }
+    override def update(id: UUID, jobInfo: JobInfo): IO[Option[Job]] = if(id == AwesomeJobUuid) IO{ Option(UpdatedAwesomeJob) } else IO.pure(None)
+
+    override def delete(id: UUID): IO[Int] =  if (id == AwesomeJobUuid) {
+      IO.pure(1)
+    } else {
+      IO.pure(0)
+    }
   }
 
   val jobsRoutes: HttpRoutes[IO] = JobRoutes[IO](jobs).routes
@@ -50,7 +58,7 @@ class JobRoutesSpec
   // TESTS
   ////////////////////////////////////////////////////////////
         // simulate HTTP request
-        // get HHT response
+        // get HTTP response
         // make some assertiong
 
   "Job Routes"  - {
@@ -72,11 +80,26 @@ class JobRoutesSpec
       for {
         response <- jobsRoutes.orNotFound.run(
           Request(method = Method.POST, uri = uri"/jobs")
+            .withEntity(JobFilter())
         )
         retreived <- response.as[List[Job]]
       } yield {
         response.status shouldBe Status.Ok
         retreived shouldBe List(AwesomeJob)
+      }
+    }
+
+    "should return all jobs which satisfy a filter" in {
+      // code under test
+      for {
+        response <- jobsRoutes.orNotFound.run(
+          Request(method = Method.POST, uri = uri"/jobs")
+            .withEntity(JobFilter(remote=true))
+        )
+        retreived <- response.as[List[Job]]
+      } yield {
+        response.status shouldBe Status.Ok
+        retreived shouldBe List()
       }
     }
 
@@ -112,19 +135,18 @@ class JobRoutesSpec
     }
 
     "should only delete a job that exists" in {
-      // code under test
       for {
-        response <- jobsRoutes.orNotFound.run(
-          Request(method = Method.DELETE, uri = uri"/jobs/843df718-ec6e-4d49-9289-f799c0f40064")
+        responseOk <- jobsRoutes.orNotFound.run(
+          Request(method = Method.DELETE, uri = uri"/jobs/efcd2a64-4463-453a-ada8-b1bae1db4377")
         )
-        badResponse <- jobsRoutes.orNotFound.run(
-          Request(method = Method.DELETE, uri = uri"/jobs/843df718-ec6e-4d49-9289-f799c0f40065")
+        responseInvalid <- jobsRoutes.orNotFound.run(
+          Request(method = Method.DELETE, uri = uri"/jobs/843df718-ec6e-4d49-9289-000000000000")
         )
       } yield {
-        response.status shouldBe Status.Ok
-        badResponse.status shouldBe Status.NotFound
+        responseOk.status shouldBe Status.Ok
+        responseInvalid.status shouldBe Status.NotFound
       }
     }
 
-  }Pa
+  }
 }

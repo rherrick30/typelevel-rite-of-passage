@@ -12,5 +12,19 @@ converted or a None if it can't.  In the latter case, then you can throw an erro
     + The algebra (signatures) is done in a trait.
     + The implementation is done in the LiveJobs class which takes a transactor and inherits the trait.
     + The LiveJobs companion object has the given to convert to a Job from a db record and the apply method.
+    + Everything is defined generically (F rather than IO)
 
-(next, do the domain!)
++ The domain package is where all the data case classes are defined (Job and JobInfo)
+
++ The Http package is for the route definitions as well as any utility response case classes (e.g.: Failure Response).
+    + Routes are defined generically (HttpRoutes[F] rather than HttpRoutes[IO])
+    + Also in Http package are the validators which validate types
+
++
+
+
+(next, do the logging!)
+
++ The Refined library allows you to define your own types that are checked at compile time.  It was not, however, used
+in this project because the refined data types are tough to get working if you have complex types.  Also, it lowers the
+development experience because you need to coerce types when going back and forth to the database.
